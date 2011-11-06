@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Sample Three.js</title>
+		<style>
+			#container {
+				background: #000;
+				width: 400px;
+				height: 300px;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container"></div>
+	</body>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+	<script src="js/Three.js"></script>
+	<script type="text/javascript">
+	
+	var Croissant = (function(){
+		var WIDTH = 400,
+		    HEIGHT = 300,
+			VIEW_ANGLE = 45,
+		    ASPECT = WIDTH / HEIGHT,
+		    NEAR = 0.1,
+		    FAR = 10000;
+		
+		var particleCount = 1000,
+			particles = new THREE.Geometry(),
+			pMaterial = new THREE.ParticleBasicMaterial({
+				color: 0xFFFFFF,
+				size: 20,
+				map: THREE.ImageUtils.loadTexture(
+					"images/particle1.png"
+				),
+				blending: THREE.AdditiveBlending,
+				transparent: true
+			});
+		
+		var $container = $('#container'),
+			particleSystem;
+			
+		var renderer = new THREE.WebGLRenderer();
+		var camera = new THREE.PerspectiveCamera( VIEW_ANGLE, ASPECT, NEAR, FAR );
+		var scene = new THREE.Scene();
+		
+		window.requestAnimFrame = (function(){
+	      return  window.requestAnimationFrame       || 
+	              window.webkitRequestAnimationFrame || 
+	              window.mozRequestAnimationFrame    || 
+	              window.oRequestAnimationFrame      || 
+	              window.msRequestAnimationFrame     || 
+	              function(/* function */ callback, /* DOMElement */ element){
+	                window.setTimeout(callback, 1000 / 60);
+	              };
+	    })();
+		
+		
+		var _self = {
+			'generateSphere' : function () {
+				var radius = 50, 
+					segments = 16, 
+					rings = 16;
+				
+				var sphereMaterial = new THREE.MeshLambertMaterial({
+				    color: 0xd5d5d5
+				});
+				var sphere = new THREE.Mesh(
+					new THREE.SphereGeometry(radius, segments, rings), 
+					sphereMaterial);
+				
+				scene.add(sphere);
+				
+				radius *= 2;
+				segments *= 2;
+				rings *= 2;
+				
+				var sphere = new THREE.Mesh(
+					new THREE.SphereGeometry(radius, segments, rings), 
+					sphereMaterial);
+				
+				scene.add(sphere);
+			},
+			'generateParticle' : function () {
+				for(var i=0; i<particleCount; i++) {
+					var pX = Math.random() * 500 - 250,
+						pY = Math.random() * 500 - 250,
+						pZ = Math.random() * 500 -250,
+						particle = new THREE.Vertex(
+							new THREE.Vector3(pX, pY, pZ)
+						);
+					
+					particle.velocity = new THREE.Vector3( 0, -Math.random(), 0);
+					particles.vertices.push(particle);
+				}
+				
+				particleSystem = new THREE.ParticleSystem( particles, pMaterial );
+
+				particleSystem.sortParticles = true;
+				scene.add(particleSystem);
+				
+				requestAnimFrame(_self.updateParticles());
+			},
+			'updateParticles' : function () {
+				particleSystem.rotation.y += 0.01;
+
+				var pCount = particleCount;
+
+				while(pCount--){
+					var particle = particles.vertices[pCount];
+					if(particle.position.y < -200) {
+						particle.position.y = 200;
+			            particle.velocity.y = 0;
+			        }
+
+					particle.velocity.y -= Math.random() * .1;
+					particle.position.addSelf(particle.velocity);
+				}
+				particleSystem.geometry.__dirtyVertices = true;
+
+				_self.renderScene();
+
+				requestAnimFrame(_self.updateParticles);
+			},
+			'setupLighting' : function () {
+				var pointLight = new THREE.PointLight( 0xFFFFFF );
+				pointLight.position.x = 10;
+				pointLight.position.y = 50;
+				pointLight.position.z = 130;
+
+				scene.add(pointLight);
+			},
+			'moveUp' : function () {
+				camera.position.z -= 5;
+				_self.renderScene();
+			},
+			'moveDown' : function () {
+				camera.position.x -= 5;
+				_self.renderScene();
+			},
+			'moveLeft' : function () {
+				camera.position.x += 5;
+				_self.renderScene();
+			},
+			'moveRight' : function () {
+				camera.position.z += 5;
+				_self.renderScene();
+			},
+			'renderScene' : function () {
+				renderer.render(scene, camera);
+			}
+		}
+		var pub = {
+			'init' : function(){
+				camera.position.z = 300;
+				renderer.setSize(WIDTH, HEIGHT);
+				$container.append(renderer.domElement);
+				
+				_self.setupLighting();
+				_self.generateParticle();
+				
+				$('body').keypress(function(e) { 
+					switch ( e.keyCode ) {
+						case 119:
+							_self.moveUp();
+							break;
+						case 100:
+							_self.moveDown();
+							break;
+						case 97:
+							_self.moveLeft();
+							break;
+						case 115:
+							_self.moveRight();
+							break;
+					}
+				 });
+				
+			}
+		}
+		return pub;
+	})();
+	
+	Croissant.init();
+	
+
+	</script>
+</html>
